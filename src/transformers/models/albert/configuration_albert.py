@@ -166,3 +166,14 @@ class AlbertConfig(PretrainedConfig):
 
         if isinstance(self.performer_attention_config, dict):
             self.performer_attention_config = PerformerAttentionConfig(**self.performer_attention_config)
+
+
+    def to_dict(self):
+        output = super().to_dict()
+
+        # Correct for the fact that PretrainedConfig doesn't call .__dict__ recursively on non-JSON primitives
+        performer_config = output['performer_attention_config']
+        if performer_config is not None:
+            output['performer_attention_config'] = copy.deepcopy(performer_config.__dict__)
+
+        return output
