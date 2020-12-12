@@ -31,6 +31,10 @@ from ...file_utils import (
     add_start_docstrings_to_model_forward,
     replace_return_docstrings,
 )
+from ...modeling_performer_attention import (
+    PerformerAttention,
+    PerformerAttentionConfig
+)
 from ...modeling_outputs import (
     BaseModelOutput,
     BaseModelOutputWithPooling,
@@ -367,11 +371,25 @@ class AlbertLayer(nn.Module):
         self.chunk_size_feed_forward = config.chunk_size_feed_forward
         self.seq_len_dim = 1
         self.full_layer_layer_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.attention = AlbertAttention(config)
         self.ffn = nn.Linear(config.hidden_size, config.intermediate_size)
         self.ffn_output = nn.Linear(config.intermediate_size, config.hidden_size)
         self.activation = ACT2FN[config.hidden_act]
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
+
+        att_type = config.attention_type
+        if att_type == 'softmax':
+            self.attention = AlbertAttention(config)
+
+        # Use FAVOR+ attention, from the "Rethinking Attention with Performers" paper
+        elif att_type == 'performer':
+            performer_config = config.performer_attention_config or PerformerAttentionConfig()
+            performer_config.attention_dropout = config.attention_dropout
+            performer_config.d_model = config.dim
+            performer_config.num_heads = config.n_heads
+
+            self.attention = PerformerAttention(performer_config)
+        else:
+            raise ValueError(f"DistilBert: Invalid attention_type {att_type}")
 
     def forward(
         self, hidden_states, attention_mask=None, head_mask=None, output_attentions=False, output_hidden_states=False
