@@ -383,9 +383,9 @@ class AlbertLayer(nn.Module):
         # Use FAVOR+ attention, from the "Rethinking Attention with Performers" paper
         elif att_type == 'performer':
             performer_config = config.performer_attention_config or PerformerAttentionConfig()
-            performer_config.attention_dropout = config.attention_dropout
-            performer_config.d_model = config.dim
-            performer_config.num_heads = config.n_heads
+            performer_config.attention_dropout = config.attention_probs_dropout_prob
+            performer_config.d_model = config.hidden_size
+            performer_config.num_heads = config.num_attention_heads
 
             self.attention = PerformerAttention(performer_config)
         else:
