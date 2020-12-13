@@ -248,7 +248,7 @@ class PerformerAttention(nn.Module):
 
     def _generate_feature_matrix(self, device):
         dim_per_head = self.d_model // self.num_heads
-        num_rows = round(dim_per_head * np.log(dim_per_head))
+        num_rows = int(round(dim_per_head * np.log(dim_per_head)))
 
         if not self.use_orthogonal_features:
             return torch.randn(num_rows, dim_per_head, device=device)
