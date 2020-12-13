@@ -301,10 +301,10 @@ class AlbertAttention(nn.Module):
         self.all_head_size = self.attention_head_size * self.num_attention_heads
         self.pruned_heads = self.pruned_heads.union(heads)
 
-    def forward(self, hidden_states, attention_mask=None, head_mask=None, output_attentions=False):
-        mixed_query_layer = self.query(hidden_states)
-        mixed_key_layer = self.key(hidden_states)
-        mixed_value_layer = self.value(hidden_states)
+    def forward(self, query, key, value, mask=None, head_mask=None, output_attentions=False):
+        mixed_query_layer = self.query(query)
+        mixed_key_layer = self.key(key)
+        mixed_value_layer = self.value(value)
 
         query_layer = self.transpose_for_scores(mixed_query_layer)
         key_layer = self.transpose_for_scores(mixed_key_layer)
@@ -314,9 +314,9 @@ class AlbertAttention(nn.Module):
         attention_scores = torch.matmul(query_layer, key_layer.transpose(-1, -2))
         attention_scores = attention_scores / math.sqrt(self.attention_head_size)
 
-        if attention_mask is not None:
+        if mask is not None:
             # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
-            attention_scores = attention_scores + attention_mask
+            attention_scores = attention_scores + mask
 
         if self.position_embedding_type == "relative_key" or self.position_embedding_type == "relative_key_query":
             seq_length = hidden_states.size()[1]
@@ -394,7 +394,14 @@ class AlbertLayer(nn.Module):
     def forward(
         self, hidden_states, attention_mask=None, head_mask=None, output_attentions=False, output_hidden_states=False
     ):
-        attention_output = self.attention(hidden_states, attention_mask, head_mask, output_attentions)
+        attention_output = self.attention(
+            query=hidden_states,
+            key=hidden_states,
+            value=hidden_states,
+            mask=attention_mask,
+            head_mask=head_mask,
+            output_attentions=output_attentions
+        )
 
         ffn_output = apply_chunking_to_forward(
             self.ff_chunk,
